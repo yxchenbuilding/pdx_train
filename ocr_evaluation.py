@@ -30,11 +30,13 @@ def evaluate_ocr(image_folder, gt_txt, output_json="ocr_results.json"):
         for line in f:
             parts = line.strip().split('\t')  # Assuming format: filename text (tab-separated)
             if len(parts) >= 2:
-                image_path = parts[0].strip()  # e.g., 'train_data/rec/train/word_001.jpg'
+                # Extract the relative path from GT (e.g., 'train_data/rec/train/word_001.jpg')
+                image_path = parts[0].strip()  # Relative path
                 gt_text = ' '.join(parts[1:]).strip()
                 
-                # Adjust the image path based on the folder structure (absolute or relative path)
-                # If 'image_folder' is provided, prepend it to the relative path
+                # Check and adjust the image path: Remove the extra repeated path part if needed
+                if image_path.startswith("train_data/rec/train"):
+                    image_path = image_path.replace("train_data/rec/train", "").lstrip(os.sep)
                 full_image_path = os.path.join(image_folder, image_path)
                 gt_dict[full_image_path] = gt_text
 
