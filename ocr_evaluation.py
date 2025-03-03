@@ -1,84 +1,71 @@
 import os
-import re
+import json
+import numpy as np
 from paddlex import create_pipeline
+from difflib import SequenceMatcher
 
-def load_ground_truth(filepath):
-    """Load ground truth text from annotation file"""
-    ground_truth = {}
-    try:
-        with open(filepath, 'r', encoding='utf-8') as file:
-            for line in file:
-                image_path, text = line.strip().split('\t')
-                ground_truth[image_path] = text
-        return ground_truth
-    except Exception as e:
-        print(f"Error loading ground truth: {str(e)}")
-        return {}
+# 初始化OCR产线
+ocr_pipeline = create_pipeline(
+    pipeline="OCR",
+    device="gpu:0", 
+    use_hpip=False
+)
 
-def normalize_text(text):
-    """Normalize text for better comparison"""
-    return re.sub(r'\s+', '', text).lower()
+def calculate_accuracy(pred_text, gt_text):
+    """计算Levenshtein距离的字符匹配精度"""
+    matcher = SequenceMatcher(None, pred_text, gt_text)
+    return matcher.ratio()
 
-def evaluate_ocr(folder_path, ground_truth):
-    """Evaluate OCR performance against ground truth"""
-    pipeline = create_pipeline(pipeline="OCR")
-    total = 0
-    correct = 0
-    
-    for image_name in os.listdir(folder_path):
-        image_path = os.path.join(folder_path, image_name)
-        
-        if not os.path.isfile(image_path):
-            continue
+def evaluate_ocr(image_folder, gt_txt, output_json="ocr_results.json"):
+    """评估OCR模型在指定文件夹下的识别精度，并保存结果为JSON"""
+    # 读取ground truth
+    gt_dict = {}
+    with open(gt_txt, 'r', encoding='utf-8') as f:
+        for line in f:
+            parts = line.strip().split(' ')  # 假设格式：filename text（空格分隔）
+            if len(parts) >= 2:
+                filename = parts[0].strip()
+                gt_text = ' '.join(parts[1:]).strip()
+                gt_dict[filename] = gt_text
+
+    results_list = []
+    accuracies = []
+
+    for image_name in os.listdir(image_folder):
+        image_path = os.path.join(image_folder, image_name)
+        if image_name in gt_dict:
+            results = ocr_pipeline.predict(input=image_path, use_doc_orientation_classify=False)
             
-        try:
-            output = pipeline.predict(
-                input=image_path,
-                use_doc_orientation_classify=False,
-                use_doc_unwarping=False,
-                use_textline_orientation=False,
-            )
-            
-            for res in output:
-                total += 1
-                ocr_text = res.transcription  # Updated attribute
-                confidence = res.score
-                gt_text = ground_truth.get(image_path, "")
-                
-                # Normalize both texts
-                ocr_norm = normalize_text(ocr_text)
-                gt_norm = normalize_text(gt_text)
-                match = ocr_norm == gt_norm
-                
-                if match:
-                    correct += 1
-                
-                # Detailed output
-                print(f"\nImage: {image_name}")
-                print(f"OCR Raw: {ocr_text}")
-                print(f"OCR Normalized: {ocr_norm}")
-                print(f"Ground Truth Raw: {gt_text}")
-                print(f"Ground Truth Normalized: {gt_norm}")
-                print(f"Confidence: {confidence:.2f}")
-                print(f"Match: {match}")
-                print("-" * 60)
-                
-        except Exception as e:
-            print(f"Error processing {image_name}: {str(e)}")
-    
-    # Calculate accuracy
-    if total > 0:
-        accuracy = correct / total
-        print(f"\nFinal Accuracy: {accuracy:.2%} ({correct}/{total})")
-    else:
-        print("No images processed")
+            # 解析 Result 对象获取预测文本
+            pred_text = ' '.join(res.rec_texts for res in results)
+            acc = calculate_accuracy(pred_text, gt_dict[image_name])
+            accuracies.append(acc)
 
-if __name__ == "__main__":
-    ground_truth_file = "./train_data/rec/rec_gt_train.txt"
-    images_folder = "./train_data/rec/train"
-    
-    ground_truth = load_ground_truth(ground_truth_file)
-    if ground_truth:
-        evaluate_ocr(images_folder, ground_truth)
-    else:
-        print("Failed to load ground truth data")
+            # 存入JSON的结果
+            results_list.append({
+                "image": image_name,
+                "predicted_text": pred_text,
+                "ground_truth": gt_dict[image_name],
+                "accuracy": round(acc, 4)
+            })
+
+            print(f"{image_name}: Accuracy = {acc:.4f}")
+
+    # 计算平均值和标准差
+    avg_acc = np.mean(accuracies)
+    std_acc = np.std(accuracies)
+    print(f"\nAverage Accuracy: {avg_acc:.4f}")
+    print(f"Standard Deviation: {std_acc:.4f}")
+
+    # 将所有结果保存到 JSON 文件
+    with open(output_json, "w", encoding="utf-8") as json_file:
+        json.dump({
+            "average_accuracy": round(avg_acc, 4),
+            "std_accuracy": round(std_acc, 4),
+            "results": results_list
+        }, json_file, ensure_ascii=False, indent=4)
+
+    print(f"\nOCR results saved to {output_json}")
+
+# 设置路径
+evaluate_ocr('/root/workspace/paddle/data/train_data/rec/train', '/root/workspace/paddle/data/train_data/rec/rec_gt_train.txt')
