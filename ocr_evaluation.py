@@ -51,7 +51,9 @@ def evaluate_ocr(image_folder, gt_txt, output_json="ocr_results.json"):
         if image_name in gt_dict:
             found_images += 1
             found_gt += 1
-            results = ocr_pipeline.predict(input=image_path, use_doc_orientation_classify=False)
+            
+            # Perform both text detection and recognition
+            results = ocr_pipeline.predict(image_path, use_text_detection=True)
 
             if not results:
                 print(f"No results for {image_name}")
