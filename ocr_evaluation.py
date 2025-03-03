@@ -30,10 +30,13 @@ def evaluate_ocr(image_folder, gt_txt, output_json="ocr_results.json"):
         for line in f:
             parts = line.strip().split('\t')  # Assuming format: filename text (tab-separated)
             if len(parts) >= 2:
-                # Strip the 'train_data/rec/train/' prefix
-                filename = parts[0].strip().replace('train_data/rec/train/', '')
+                image_path = parts[0].strip()  # e.g., 'train_data/rec/train/word_001.jpg'
                 gt_text = ' '.join(parts[1:]).strip()
-                gt_dict[filename] = gt_text
+                
+                # Adjust the image path based on the folder structure (absolute or relative path)
+                # If 'image_folder' is provided, prepend it to the relative path
+                full_image_path = os.path.join(image_folder, image_path)
+                gt_dict[full_image_path] = gt_text
 
     print(f"Ground truth file contains {len(gt_dict)} entries.")
     
@@ -45,21 +48,15 @@ def evaluate_ocr(image_folder, gt_txt, output_json="ocr_results.json"):
     results_list = []
     accuracies = []
     
-    # Check if image filenames match ground truth file
-    missing_gt_files = []
-    
     # Process each image
-    for image_name in image_files:
-        image_path = os.path.join(image_folder, image_name)
-        
-        if image_name in gt_dict:
-            print(f"Processing image: {image_name}")
+    for image_path, gt_text in gt_dict.items():
+        if os.path.exists(image_path):  # Check if the image file exists
+            print(f"Processing image: {image_path}")
             results = ocr_pipeline.predict(input=image_path, use_text_detection=True)
             
             if results:
                 # Extract OCR text results
                 pred_text = ' '.join(res.rec_texts for res in results)
-                gt_text = gt_dict[image_name]
                 
                 # Calculate accuracy
                 acc = calculate_accuracy(pred_text, gt_text)
@@ -67,22 +64,17 @@ def evaluate_ocr(image_folder, gt_txt, output_json="ocr_results.json"):
                 
                 # Store results in JSON
                 results_list.append({
-                    "image": image_name,
+                    "image": image_path,
                     "predicted_text": pred_text,
                     "ground_truth": gt_text,
                     "accuracy": round(acc, 4)
                 })
                 
-                print(f"{image_name}: Accuracy = {acc:.4f}")
+                print(f"{image_path}: Accuracy = {acc:.4f}")
             else:
-                print(f"No OCR results for {image_name}")
+                print(f"No OCR results for {image_path}")
         else:
-            missing_gt_files.append(image_name)  # Track missing ground truth
-
-    if missing_gt_files:
-        print("The following images have no ground truth:")
-        for file in missing_gt_files:
-            print(file)
+            print(f"Image not found: {image_path}")
     
     # Calculate average accuracy and standard deviation
     if accuracies:
@@ -104,7 +96,6 @@ def evaluate_ocr(image_folder, gt_txt, output_json="ocr_results.json"):
     print(f"OCR results saved to {output_json}")
 
 # Run OCR evaluation
-image_folder = '/root/workspace/paddle/pdx_train/train_data/rec/train'
-gt_txt = '/root/workspace/paddle/pdx_train/train_data/rec/rec_gt_train.txt'
+image_folder = '/root/workspace/paddle/pdx_train/train_data/rec/train'  # Update this path
+gt_txt = '/root/workspace/paddle/pdx_train/train_data/rec/rec_gt_train.txt'  # Update this path
 evaluate_ocr(image_folder, gt_txt)
-
