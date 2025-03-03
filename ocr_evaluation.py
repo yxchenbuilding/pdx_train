@@ -30,7 +30,8 @@ def evaluate_ocr(image_folder, gt_txt, output_json="ocr_results.json"):
         for line in f:
             parts = line.strip().split('\t')  # Assuming format: filename text (tab-separated)
             if len(parts) >= 2:
-                filename = parts[0].strip()
+                # Strip the 'train_data/rec/train/' prefix
+                filename = parts[0].strip().replace('train_data/rec/train/', '')
                 gt_text = ' '.join(parts[1:]).strip()
                 gt_dict[filename] = gt_text
 
@@ -43,6 +44,9 @@ def evaluate_ocr(image_folder, gt_txt, output_json="ocr_results.json"):
     # Variables to track results
     results_list = []
     accuracies = []
+    
+    # Check if image filenames match ground truth file
+    missing_gt_files = []
     
     # Process each image
     for image_name in image_files:
@@ -73,7 +77,12 @@ def evaluate_ocr(image_folder, gt_txt, output_json="ocr_results.json"):
             else:
                 print(f"No OCR results for {image_name}")
         else:
-            print(f"No ground truth for {image_name}")
+            missing_gt_files.append(image_name)  # Track missing ground truth
+
+    if missing_gt_files:
+        print("The following images have no ground truth:")
+        for file in missing_gt_files:
+            print(file)
     
     # Calculate average accuracy and standard deviation
     if accuracies:
