@@ -2,7 +2,6 @@ import os
 import json
 import numpy as np
 from paddlex import create_pipeline
-from difflib import SequenceMatcher
 
 # Initialize OCR pipeline
 try:
@@ -55,27 +54,34 @@ def evaluate_ocr(image_folder, gt_txt, output_json="ocr_results.json"):
         if os.path.exists(image_path):  # Check if the image file exists
             print(f"Processing image: {image_path}")
             # Using predict() without the 'use_text_detection' argument
-            results = ocr_pipeline.predict(image_path)
+            output = ocr_pipeline.predict(image_path)
             
-            if results:
-                # Initialize a variable to store the predicted text from all detected text lines
-                pred_text = ''
-                for res in results:
-                    pred_text += ' '.join(res.rec_texts)  # Concatenate the detected text
-                
-                # Calculate accuracy
-                acc = calculate_accuracy(pred_text, gt_text)
-                accuracies.append(acc)
-                
-                # Store results in JSON
-                results_list.append({
-                    "image": image_path,
-                    "predicted_text": pred_text,
-                    "ground_truth": gt_text,
-                    "accuracy": round(acc, 4)
-                })
-                
-                print(f"{image_path}: Accuracy = {acc:.4f}")
+            if output:
+                # Process each result in output
+                for res in output:
+                    # Print the result (optional, can be removed)
+                    res.print()
+                    
+                    # Save the OCR result as image and JSON
+                    res.save_to_img("./output/")
+                    res.save_to_json("./output/")
+                    
+                    # Extract the predicted text from the result
+                    pred_text = res.rec_texts
+                    
+                    # Calculate accuracy
+                    acc = calculate_accuracy(pred_text, gt_text)
+                    accuracies.append(acc)
+                    
+                    # Store results in the list
+                    results_list.append({
+                        "image": image_path,
+                        "predicted_text": pred_text,
+                        "ground_truth": gt_text,
+                        "accuracy": round(acc, 4)
+                    })
+                    
+                    print(f"{image_path}: Accuracy = {acc:.4f}")
             else:
                 print(f"No OCR results for {image_path}")
         else:
