@@ -58,8 +58,10 @@ def evaluate_ocr(image_folder, gt_txt, output_json="ocr_results.json"):
             results = ocr_pipeline.predict(image_path)
             
             if results:
-                # Extract OCR text results
-                pred_text = ' '.join(res.rec_texts for res in results)
+                # Initialize a variable to store the predicted text from all detected text lines
+                pred_text = ''
+                for res in results:
+                    pred_text += ' '.join(res.rec_texts)  # Concatenate the detected text
                 
                 # Calculate accuracy
                 acc = calculate_accuracy(pred_text, gt_text)
