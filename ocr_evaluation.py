@@ -54,7 +54,8 @@ def evaluate_ocr(image_folder, gt_txt, output_json="ocr_results.json"):
     for image_path, gt_text in gt_dict.items():
         if os.path.exists(image_path):  # Check if the image file exists
             print(f"Processing image: {image_path}")
-            results = ocr_pipeline.predict(input=image_path, use_text_detection=True)
+            # Using predict() without the 'use_text_detection' argument
+            results = ocr_pipeline.predict(image_path)
             
             if results:
                 # Extract OCR text results
