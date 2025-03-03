@@ -54,10 +54,11 @@ def evaluate_ocr(image_folder, gt_txt, output_json="ocr_results.json"):
             
             # Perform both text detection and recognition
             results = ocr_pipeline.predict(image_path, use_text_detection=True)
-
-            if not results:
+            if results:
+                print(f"OCR results for {image_name}: {results}")
+            else:
                 print(f"No results for {image_name}")
-                continue
+
             
             # 解析 Result 对象获取预测文本
             pred_text = ' '.join(res.rec_texts for res in results)
