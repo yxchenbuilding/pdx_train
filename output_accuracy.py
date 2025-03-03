@@ -34,7 +34,9 @@ def evaluate_ocr_results(output_folder, gt_txt):
     # Process each JSON file
     for json_file in json_files:
         json_path = os.path.join(output_folder, json_file)
-        image_name = os.path.splitext(json_file)[0]  # Get image name without extension
+        
+        # Extract image name without '_result' suffix and file extension
+        image_name = os.path.splitext(json_file)[0].replace('_result', '')
         
         # Check if corresponding GT exists
         if image_name in gt_dict:
