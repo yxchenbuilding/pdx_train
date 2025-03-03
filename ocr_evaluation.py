@@ -22,7 +22,7 @@ def evaluate_ocr(image_folder, gt_txt, output_json="ocr_results.json"):
     gt_dict = {}
     with open(gt_txt, 'r', encoding='utf-8') as f:
         for line in f:
-            parts = line.strip().split(' ')  # 假设格式：filename text（空格分隔）
+            parts = line.strip().split('	')  # 假设格式：filename text（空格分隔）
             if len(parts) >= 2:
                 filename = parts[0].strip()
                 gt_text = ' '.join(parts[1:]).strip()
