@@ -32,7 +32,7 @@ def evaluate_ocr(image_folder, gt_txt, output_json="ocr_results.json"):
     print(f"Ground truth file contains {len(gt_dict)} entries.")
     
     # 统计文件夹中的图片数量
-    image_files = [f for f in os.listdir(image_folder) if f.endswith(('.jpg', '.png', '.jpeg', '.bmp'))]
+    image_files = [f for f in os.listdir(image_folder) if f.endswith(('.jpg'))]
     print(f"Image folder contains {len(image_files)} images.")
 
     # 记录找到的图像和GT配对的数量
@@ -81,4 +81,4 @@ def evaluate_ocr(image_folder, gt_txt, output_json="ocr_results.json"):
     print(f"\nFound {found_images} images and {found_gt} ground truth entries.")
 
 # 设置路径
-evaluate_ocr('/root/workspace/paddle/data/train_data/rec/train', '/root/workspace/paddle/data/train_data/rec/rec_gt_train.txt')
+evaluate_ocr('/root/workspace/paddle/pdx_train/train_data/rec/train', '/root/workspace/paddle/pdx_train/train_data/rec/rec_gt_train.txt')
