@@ -17,9 +17,12 @@ def evaluate_ocr_results(output_folder, gt_txt):
         for line in f:
             parts = line.strip().split('\t')  # Assuming format: filename text (tab-separated)
             if len(parts) >= 2:
-                image_path = parts[0].strip()  # Relative path
+                image_path = parts[0].strip()  # Full path
                 gt_text = ' '.join(parts[1:]).strip()
-                gt_dict[image_path] = gt_text
+                
+                # Extract just the filename (remove any path prefix)
+                image_name = os.path.basename(image_path).replace('.jpg', '')
+                gt_dict[image_name] = gt_text
 
     print(f"Ground truth file contains {len(gt_dict)} entries.")
     
