@@ -1,0 +1,62 @@
+Global:
+  use_gpu: true
+  epoch_num: 300
+  log_smooth_window: 20
+  pretrained_model: ./models/pretrain/ch_ppocr_mobile_v2.0_rec_train/best_accuracy
+  save_model_dir: ./models/trained/rec_anti_fake
+
+Architecture:
+  model_type: rec
+  algorithm: CRNN
+  Backbone:
+    name: MobileNetV3
+    scale: 0.5
+  Neck:
+    name: SequenceEncoder
+    encoder_type: rnn
+    hidden_size: 96
+  Head:
+    name: CTCHead
+    fc_decay: 0.00001
+
+Optimizer:
+  name: Adam
+  beta1: 0.9
+  beta2: 0.999
+  lr:
+    name: Cosine
+    learning_rate: 0.001
+    warmup_epoch: 5
+
+Train:
+  dataset:
+    name: SimpleDataSet
+    data_dir: ./data/train/
+    label_file_list: [./data/rec_gt_train.txt]
+    transforms:
+      - DecodeImage:
+          img_mode: BGR
+          channel_first: False
+      - RecAug:
+          use_tia: true
+          aug_prob: 0.6
+      - RandomDistort:
+          brightness_range: 0.5
+          contrast_range: 0.5
+          saturation_range: 0.5
+      - RandomRotate:
+          degrees: 15
+          expand_canvas: true
+      - CTCLabelEncode
+      - KeepKeys:
+          keep_keys: ["image", "label", "length"]
+  loader:
+    batch_size_per_card: 256
+    shuffle: true
+    drop_last: true
+
+wandb:
+  project: AntiFake_OCR
+  name: v2.0_mobilenetv3
+  watch_model: true
+  log_parameters: true
